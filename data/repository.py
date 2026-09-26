@@ -173,3 +173,53 @@ def save_record(
                 None if note is None else str(note),
             ),
         )
+
+
+def record_reaction_and_delete_future_plans(
+    child_id,
+    food_id,
+    date,
+    note=None,
+) -> int:
+    """原子记录一次不良反应，并删除该日期之后的未执行计划。
+
+    返回删除的 ``planned`` 记录数。把两个动作放在同一事务中，可以避免只写入
+    反应记录、却因后续异常保留旧计划的中间状态。
+    """
+
+    reaction_date = parse_iso_date(date, "date")
+    try:
+        normalized_food_id = int(food_id)
+    except (TypeError, ValueError) as exc:
+        raise DataValidationError("food_id 必须是整数") from exc
+
+    init_database()
+    with open_database() as connection:
+        _ensure_child_exists(connection, child_id)
+        food = connection.execute(
+            "SELECT 1 FROM foods WHERE id = ?",
+            (normalized_food_id,),
+        ).fetchone()
+        if food is None:
+            raise FoodNotFoundError(f"食物编号不存在：{normalized_food_id}")
+
+        connection.execute(
+            """
+            INSERT INTO food_records (child_id, food_id, date, status, note)
+            VALUES (?, ?, ?, 'reaction', ?)
+            """,
+            (
+                child_id,
+                normalized_food_id,
+                reaction_date.isoformat(),
+                None if note is None else str(note),
+            ),
+        )
+        cursor = connection.execute(
+            """
+            DELETE FROM food_records
+            WHERE child_id = ? AND status = 'planned' AND date > ?
+            """,
+            (child_id, reaction_date.isoformat()),
+        )
+        return cursor.rowcount

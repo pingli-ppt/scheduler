@@ -11,6 +11,7 @@ from .repository import (
     load_daily_intake,
     load_foods,
     load_history,
+    record_reaction_and_delete_future_plans,
     save_record,
 )
 
@@ -22,4 +23,5 @@ __all__ = [
     "load_history",
     "load_daily_intake",
     "save_record",
+    "record_reaction_and_delete_future_plans",
 ]
