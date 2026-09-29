@@ -78,11 +78,46 @@ CREATE TABLE IF NOT EXISTS daily_intake (
     UNIQUE (child_id, date)
 );
 
+CREATE TABLE IF NOT EXISTS recommendations (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id                TEXT NOT NULL,
+    food_id                 INTEGER NOT NULL,
+    scheduled_date          TEXT NOT NULL,
+    recommended_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    planned_record_id       INTEGER UNIQUE,
+    adopted                 INTEGER CHECK (adopted IS NULL OR adopted IN (0, 1)),
+    adopted_at              TEXT,
+    consumed                INTEGER CHECK (consumed IS NULL OR consumed IN (0, 1)),
+    consumed_at             TEXT,
+    outcome_record_id       INTEGER UNIQUE,
+    cancelled_at            TEXT,
+    cancellation_reason     TEXT,
+    reschedule_triggered    INTEGER NOT NULL DEFAULT 0
+                            CHECK (reschedule_triggered IN (0, 1)),
+    reschedule_succeeded    INTEGER
+                            CHECK (reschedule_succeeded IS NULL OR reschedule_succeeded IN (0, 1)),
+    reschedule_plan_count   INTEGER
+                            CHECK (reschedule_plan_count IS NULL OR reschedule_plan_count >= 0),
+    rescheduled_at          TEXT,
+    FOREIGN KEY (child_id) REFERENCES children(id),
+    FOREIGN KEY (food_id) REFERENCES foods(id),
+    FOREIGN KEY (planned_record_id) REFERENCES food_records(id) ON DELETE SET NULL,
+    FOREIGN KEY (outcome_record_id) REFERENCES food_records(id),
+    CHECK (consumed IS NULL OR consumed = 0 OR adopted = 1)
+);
+
 CREATE INDEX IF NOT EXISTS idx_food_records_child_date
     ON food_records (child_id, date, id);
 
 CREATE INDEX IF NOT EXISTS idx_daily_intake_child_date
     ON daily_intake (child_id, date, id);
+
+CREATE INDEX IF NOT EXISTS idx_recommendations_child_date
+    ON recommendations (child_id, scheduled_date, id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_recommendations_active_item
+    ON recommendations (child_id, food_id, scheduled_date)
+    WHERE cancelled_at IS NULL;
 """
 
 
@@ -129,7 +164,7 @@ def open_database(
 
 
 def init_database(database_path: str | Path | None = None) -> Path:
-    """幂等创建数据层所需的四张核心表，并返回数据库路径。"""
+    """幂等创建四张核心表和推荐追踪表，并返回数据库路径。"""
 
     path = resolve_database_path(database_path)
     with open_database(path) as connection:
