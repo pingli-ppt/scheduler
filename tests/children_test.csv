@@ -1,0 +1,4 @@
+id,nickname,birth_date,weaning_start,known_allergens,group,created_at
+C001,测试宝宝一,2026-03-15,2026-09-15,,test,2026-09-15
+C002,测试宝宝二,2026-01-15,2026-07-15,蛋类,test,2026-09-15
+C004,测试宝宝四,2025-09-15,2026-03-15,,control,2026-09-15

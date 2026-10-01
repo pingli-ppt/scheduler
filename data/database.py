@@ -85,6 +85,11 @@ CREATE TABLE IF NOT EXISTS recommendations (
     food_id                 INTEGER NOT NULL,
     scheduled_date          TEXT NOT NULL,
     recommended_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    food_name               TEXT,
+    texture                 INTEGER CHECK (texture IS NULL OR texture IN (1, 2, 3, 4)),
+    texture_desc            TEXT,
+    reason                  TEXT,
+    display_source          TEXT,
     planned_record_id       INTEGER UNIQUE,
     adopted                 INTEGER CHECK (adopted IS NULL OR adopted IN (0, 1)),
     adopted_at              TEXT,
@@ -136,6 +141,29 @@ def _migrate_food_auto_recommend_column(connection: sqlite3.Connection) -> None:
         )
 
 
+RECOMMENDATION_DISPLAY_COLUMNS = {
+    "food_name": "TEXT",
+    "texture": "INTEGER CHECK (texture IS NULL OR texture IN (1, 2, 3, 4))",
+    "texture_desc": "TEXT",
+    "reason": "TEXT",
+    "display_source": "TEXT",
+}
+
+
+def _migrate_recommendation_display_columns(connection: sqlite3.Connection) -> None:
+    """为旧数据库补齐 API 展示快照字段，不影响已有推荐记录。"""
+
+    existing = {
+        str(row["name"])
+        for row in connection.execute("PRAGMA table_info(recommendations)")
+    }
+    for column, definition in RECOMMENDATION_DISPLAY_COLUMNS.items():
+        if column not in existing:
+            connection.execute(
+                f"ALTER TABLE recommendations ADD COLUMN {column} {definition}"
+            )
+
+
 def resolve_database_path(database_path: str | Path | None = None) -> Path:
     """返回数据库路径；相对路径统一相对于项目根目录解释。"""
 
@@ -185,6 +213,7 @@ def init_database(database_path: str | Path | None = None) -> Path:
     with open_database(path) as connection:
         connection.executescript(SCHEMA_SQL)
         _migrate_food_auto_recommend_column(connection)
+        _migrate_recommendation_display_columns(connection)
     return path
 
 

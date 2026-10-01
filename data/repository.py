@@ -141,6 +141,60 @@ def load_child(child_id: str) -> dict:
     return child
 
 
+def save_child(
+    child_id,
+    nickname,
+    birth_date,
+    weaning_start,
+    known_allergens,
+    group,
+) -> None:
+    """新增或更新儿童档案。"""
+
+    normalized_id = str(child_id).strip()
+    normalized_nickname = str(nickname).strip()
+    if not normalized_id:
+        raise DataValidationError("child_id 不允许为空")
+    if not normalized_nickname:
+        raise DataValidationError("nickname 不允许为空")
+    normalized_birth_date = parse_iso_date(birth_date, "birth_date")
+    normalized_weaning_start = parse_iso_date(weaning_start, "weaning_start")
+    if normalized_weaning_start < normalized_birth_date:
+        raise DataValidationError("weaning_start 不能早于 birth_date")
+    normalized_allergens = parse_csv_list(
+        known_allergens,
+        "known_allergens",
+        ALLERGEN_TYPES,
+    )
+    if group not in {"test", "control"}:
+        raise DataValidationError("group 只能是 test 或 control")
+
+    init_database()
+    with open_database() as connection:
+        connection.execute(
+            """
+            INSERT INTO children (
+                id, nickname, birth_date, weaning_start,
+                known_allergens, "group"
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                nickname = excluded.nickname,
+                birth_date = excluded.birth_date,
+                weaning_start = excluded.weaning_start,
+                known_allergens = excluded.known_allergens,
+                "group" = excluded."group"
+            """,
+            (
+                normalized_id,
+                normalized_nickname,
+                normalized_birth_date.isoformat(),
+                normalized_weaning_start.isoformat(),
+                ",".join(normalized_allergens),
+                group,
+            ),
+        )
+
+
 def load_history(child_id: str) -> list[dict]:
     """按日期升序返回食物历史；每条记录只暴露契约约定的三个字段。"""
 
@@ -286,23 +340,40 @@ def save_recommendations(
 ) -> list[int]:
     """保存实际展示给家庭的一批推荐，并返回对应的推荐编号。
 
-    算法输出中的额外展示字段不在此重复存储。相同儿童、食物和安排日期的有效推荐
-    重复保存时会返回原编号，避免页面刷新造成重复记录。
+    展示字段会一并保存，保证刷新页面后仍能还原当时实际展示的内容。相同儿童、
+    食物和安排日期的有效推荐重复保存时会返回原编号，避免页面刷新造成重复记录。
     """
 
-    normalized: list[tuple[int, object]] = []
+    normalized: list[tuple[int, object, dict[str, object | None]]] = []
     for index, item in enumerate(recommendations, start=1):
         if not isinstance(item, Mapping):
             raise DataValidationError(f"第 {index} 条推荐必须是包含 food_id 和 date 的映射")
         food_id = _positive_int(item.get("food_id"), f"第 {index} 条推荐的 food_id")
         scheduled_date = parse_iso_date(item.get("date"), f"第 {index} 条推荐的 date")
-        normalized.append((food_id, scheduled_date))
+        display = {
+            "food_name": None if item.get("food_name") is None else str(item["food_name"]),
+            "texture": (
+                None
+                if item.get("texture") is None
+                else _positive_int(item.get("texture"), f"第 {index} 条推荐的 texture")
+            ),
+            "texture_desc": (
+                None if item.get("texture_desc") is None else str(item["texture_desc"])
+            ),
+            "reason": None if item.get("reason") is None else str(item["reason"]),
+            "display_source": (
+                None if item.get("source") is None else str(item["source"])
+            ),
+        }
+        if display["texture"] is not None and int(display["texture"]) not in {1, 2, 3, 4}:
+            raise DataValidationError(f"第 {index} 条推荐的 texture 必须在 1 到 4 之间")
+        normalized.append((food_id, scheduled_date, display))
 
     init_database()
     recommendation_ids: list[int] = []
     with open_database() as connection:
         _ensure_child_exists(connection, child_id)
-        for food_id, scheduled_date in normalized:
+        for food_id, scheduled_date, display in normalized:
             _ensure_food_exists(connection, food_id)
             date_text = scheduled_date.isoformat()
             existing = connection.execute(
@@ -315,6 +386,25 @@ def save_recommendations(
                 (child_id, food_id, date_text),
             ).fetchone()
             if existing is not None:
+                connection.execute(
+                    """
+                    UPDATE recommendations
+                    SET food_name = COALESCE(food_name, ?),
+                        texture = COALESCE(texture, ?),
+                        texture_desc = COALESCE(texture_desc, ?),
+                        reason = COALESCE(reason, ?),
+                        display_source = COALESCE(display_source, ?)
+                    WHERE id = ?
+                    """,
+                    (
+                        display["food_name"],
+                        display["texture"],
+                        display["texture_desc"],
+                        display["reason"],
+                        display["display_source"],
+                        existing["id"],
+                    ),
+                )
                 recommendation_ids.append(int(existing["id"]))
                 continue
 
@@ -328,10 +418,22 @@ def save_recommendations(
             recommendation = connection.execute(
                 """
                 INSERT INTO recommendations (
-                    child_id, food_id, scheduled_date, planned_record_id
-                ) VALUES (?, ?, ?, ?)
+                    child_id, food_id, scheduled_date,
+                    food_name, texture, texture_desc, reason, display_source,
+                    planned_record_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (child_id, food_id, date_text, planned.lastrowid),
+                (
+                    child_id,
+                    food_id,
+                    date_text,
+                    display["food_name"],
+                    display["texture"],
+                    display["texture_desc"],
+                    display["reason"],
+                    display["display_source"],
+                    planned.lastrowid,
+                ),
             )
             recommendation_ids.append(int(recommendation.lastrowid))
 
@@ -359,6 +461,11 @@ def load_recommendations(child_id: str) -> list[dict]:
                 r.id AS recommendation_id,
                 r.child_id,
                 r.food_id,
+                COALESCE(r.food_name, food.name) AS food_name,
+                COALESCE(r.texture, food.texture_stage) AS texture,
+                r.texture_desc,
+                r.reason,
+                r.display_source AS source,
                 r.scheduled_date AS date,
                 r.recommended_at,
                 r.planned_record_id,
@@ -377,6 +484,7 @@ def load_recommendations(child_id: str) -> list[dict]:
                 r.reschedule_plan_count,
                 r.rescheduled_at
             FROM recommendations AS r
+            JOIN foods AS food ON food.id = r.food_id
             LEFT JOIN food_records AS outcome ON outcome.id = r.outcome_record_id
             WHERE r.child_id = ?
             ORDER BY r.scheduled_date ASC, r.id ASC
@@ -403,6 +511,24 @@ def load_recommendations(child_id: str) -> list[dict]:
         item["reschedule_triggered"] = bool(item["reschedule_triggered"])
         result.append(item)
     return result
+
+
+def load_recommendation(recommendation_id) -> dict:
+    """按推荐编号返回一条完整的推荐追踪记录。"""
+
+    normalized_id = _positive_int(recommendation_id, "recommendation_id")
+    init_database()
+    with open_database() as connection:
+        row = connection.execute(
+            "SELECT child_id FROM recommendations WHERE id = ?",
+            (normalized_id,),
+        ).fetchone()
+    if row is None:
+        raise RecommendationNotFoundError(f"推荐编号不存在：{normalized_id}")
+    for item in load_recommendations(str(row["child_id"])):
+        if item["recommendation_id"] == normalized_id:
+            return item
+    raise RecommendationNotFoundError(f"推荐编号不存在：{normalized_id}")
 
 
 def record_recommendation_engagement(
