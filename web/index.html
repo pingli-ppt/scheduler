@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f2e9" />
+    <meta name="description" content="果初——有依据的婴幼儿辅食引入排程工具" />
+    <title>果初 · 辅食安排</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#profile" aria-label="果初首页">
+          <span class="brand-mark" aria-hidden="true"><i></i><b></b></span>
+          <span><strong>果初</strong><small>让每一次新尝试，都有依据</small></span>
+        </a>
+        <span class="pilot-badge">家庭试用版</span>
+      </header>
+
+      <main>
+        <section class="page" data-page="profile" aria-labelledby="profile-title">
+          <div class="page-heading">
+            <span class="eyebrow">宝宝档案</span>
+            <h1 id="profile-title">先了解宝宝的情况</h1>
+            <p>这些信息用来判断月龄、食物形态和需要避开的致敏物质。</p>
+          </div>
+
+          <div class="privacy-note">
+            <span class="privacy-icon" aria-hidden="true">✓</span>
+            <div><strong>少填一点，更安心</strong><p>只填写试用编号和昵称，不需要真实姓名、手机号或身份证信息。</p></div>
+          </div>
+
+          <form id="profile-form" class="form-stack">
+            <div class="card form-card">
+              <div class="section-title"><span>01</span><div><h2>基本信息</h2><p>用于生成适合当前阶段的安排</p></div></div>
+              <label class="field">
+                <span>试用编号</span>
+                <input id="child-id" name="child_id" autocomplete="off" placeholder="例如 GC-001" required />
+                <small>由项目成员提供，不填写真实姓名</small>
+              </label>
+              <label class="field">
+                <span>宝宝昵称</span>
+                <input id="nickname" name="nickname" autocomplete="off" placeholder="例如 小果" required />
+              </label>
+              <div class="field-grid">
+                <label class="field"><span>出生日期</span><input id="birth-date" name="birth_date" type="date" required /></label>
+                <label class="field"><span>开始添加辅食</span><input id="weaning-start" name="weaning_start" type="date" required /></label>
+              </div>
+            </div>
+
+            <div class="card form-card">
+              <div class="section-title"><span>02</span><div><h2>已知致敏物质</h2><p>按类别选择，不需要逐个勾选食材</p></div></div>
+              <div class="chip-grid allergen-grid" id="allergen-options" aria-label="已知致敏物质">
+                <button type="button" class="choice-chip" data-value="含麸质谷物">含麸质谷物</button>
+                <button type="button" class="choice-chip" data-value="甲壳纲类动物">甲壳类</button>
+                <button type="button" class="choice-chip" data-value="鱼类">鱼类</button>
+                <button type="button" class="choice-chip" data-value="蛋类">蛋类</button>
+                <button type="button" class="choice-chip" data-value="花生">花生</button>
+                <button type="button" class="choice-chip" data-value="大豆">大豆</button>
+                <button type="button" class="choice-chip" data-value="乳">乳</button>
+                <button type="button" class="choice-chip" data-value="坚果">坚果</button>
+              </div>
+              <p class="field-help">没有已知致敏物质时可以不选。系统只做排除，不判断是否过敏。</p>
+            </div>
+
+            <div class="card form-card compact-card">
+              <div class="section-title"><span>03</span><div><h2>试用分组</h2><p>请按照项目成员告知的分组选择</p></div></div>
+              <div class="segmented" role="radiogroup" aria-label="试用分组">
+                <label><input type="radio" name="group" value="test" checked /><span><b>体验推荐</b><small>查看个性化辅食安排</small></span></label>
+                <label><input type="radio" name="group" value="control" /><span><b>只做记录</b><small>不显示系统推荐</small></span></label>
+              </div>
+            </div>
+
+            <button class="primary-button" type="submit"><span>保存档案</span><span aria-hidden="true">→</span></button>
+            <p class="consent-copy">保存即表示知晓：本工具用于学生课题试用，不能替代儿科医生或注册营养师的建议。</p>
+          </form>
+        </section>
+
+        <section class="page" data-page="daily" aria-labelledby="daily-title" hidden>
+          <div class="daily-hero">
+            <div class="page-heading">
+              <span class="eyebrow">每日膳食记录</span>
+              <h1 id="daily-title">今天吃到了哪些类别？</h1>
+              <p>记录全天吃到的食物，不只是今天第一次尝试的新食物。</p>
+            </div>
+            <label class="date-pill"><span>记录日期</span><input id="intake-date" type="date" /></label>
+          </div>
+
+          <form id="daily-form" class="form-stack">
+            <div class="card category-card">
+              <div class="category-summary">
+                <div><span class="summary-number" id="category-count">0</span><small>/ 7 类</small></div>
+                <p id="category-message">点选今天吃到的类别</p>
+              </div>
+              <div class="category-progress" aria-hidden="true"><i id="category-progress-bar"></i></div>
+              <div class="category-grid" id="category-options">
+                <button type="button" class="category-option" data-value="谷物根茎薯类"><span class="category-symbol grain">谷</span><b>谷物根茎薯类</b><small>米、面、薯类</small></button>
+                <button type="button" class="category-option" data-value="豆类坚果"><span class="category-symbol bean">豆</span><b>豆类坚果</b><small>豆腐、豆类</small></button>
+                <button type="button" class="category-option" data-value="奶类"><span class="category-symbol milk">奶</span><b>奶类</b><small>酸奶、奶酪</small></button>
+                <button type="button" class="category-option" data-value="肉类"><span class="category-symbol meat">肉</span><b>肉类</b><small>畜禽鱼和内脏</small></button>
+                <button type="button" class="category-option" data-value="蛋类"><span class="category-symbol egg">蛋</span><b>蛋类</b><small>鸡蛋、鹌鹑蛋</small></button>
+                <button type="button" class="category-option" data-value="维生素A丰富蔬果"><span class="category-symbol vitamin">A</span><b>维A丰富蔬果</b><small>南瓜、胡萝卜</small></button>
+                <button type="button" class="category-option wide" data-value="其他蔬果"><span class="category-symbol greens">蔬</span><b>其他蔬果</b><small>水果和其他蔬菜</small></button>
+              </div>
+              <p class="definition-note"><b>按全天计算：</b>米粉、正餐、加餐中吃到的类别都可以勾选。</p>
+            </div>
+
+            <div class="card form-card intake-details">
+              <div class="section-title"><span>+</span><div><h2>再补充两项</h2><p>用于统一计算每日膳食指标</p></div></div>
+              <div class="number-row">
+                <div><b>辅食餐数</b><small>不包含母乳和配方奶</small></div>
+                <div class="stepper" data-target="meal-count"><button type="button" data-step="-1" aria-label="减少辅食餐数">−</button><output id="meal-count">2</output><button type="button" data-step="1" aria-label="增加辅食餐数">＋</button></div>
+              </div>
+              <div class="toggle-row">
+                <div><b>今天仍有母乳喂养</b><small>混合喂养也请选择“是”</small></div>
+                <label class="switch"><input id="is-breastfed" type="checkbox" checked /><span></span></label>
+              </div>
+              <div class="number-row">
+                <div><b>奶类喂养次数</b><small>配方奶或其他奶类喂养</small></div>
+                <div class="stepper" data-target="milk-feeds"><button type="button" data-step="-1" aria-label="减少奶类喂养次数">−</button><output id="milk-feeds">0</output><button type="button" data-step="1" aria-label="增加奶类喂养次数">＋</button></div>
+              </div>
+            </div>
+
+            <button class="primary-button" type="submit"><span>保存今天的记录</span><span aria-hidden="true">✓</span></button>
+            <p class="consent-copy">实验组和对照组都填写同一份记录，通常30秒即可完成。</p>
+          </form>
+        </section>
+
+        <section class="page" data-page="schedule" aria-labelledby="schedule-title" hidden>
+          <div class="schedule-heading">
+            <div class="page-heading">
+              <span class="eyebrow">个性化安排</span>
+              <h1 id="schedule-title">接下来，可以尝试这些</h1>
+              <p>系统会结合月龄、已知致敏物质和近期类别缺口安排新食物。</p>
+            </div>
+            <div class="schedule-tools">
+              <button class="icon-button" id="open-share" type="button" aria-label="分享辅食安排">
+                <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5"/></svg>
+                <span>分享</span>
+              </button>
+              <button class="icon-button" id="refresh-schedule" type="button" aria-label="刷新辅食安排">
+                <svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6.1 8a7 7 0 0 1 11.2-2L20 12M4 12l2.7 6a7 7 0 0 0 11.2-2"/></svg>
+                <span>刷新</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="schedule-meta">
+            <span><i></i>未来6周</span><span>每种新食物间隔约4天</span>
+          </div>
+
+          <div id="schedule-state" class="schedule-list" aria-live="polite"></div>
+
+          <aside class="info-card vitamin-note">
+            <span class="info-symbol">D</span>
+            <div><b>关于维生素D</b><p>推荐摄入量为每日10 μg，辅食通常难以满足，具体补充方式请咨询儿科医生或儿保医生。</p></div>
+          </aside>
+          <p class="medical-note">本工具依据公开标准整理，未经专业机构复核，不替代医生或注册营养师建议。</p>
+        </section>
+
+        <section class="page" data-page="report" aria-labelledby="report-title" hidden>
+          <button class="back-button" type="button" data-back="schedule"><span aria-hidden="true">←</span> 返回安排</button>
+          <div class="page-heading report-heading">
+            <span class="eyebrow">上报本次情况</span>
+            <h1 id="report-title">宝宝这次吃得怎么样？</h1>
+            <p>请按实际情况填写。系统推荐不等于家长采纳，也不等于宝宝实际吃到。</p>
+          </div>
+
+          <div class="report-food-card" id="report-food-card">
+            <span class="food-date">10月7日</span>
+            <div><h2>牛肉泥</h2><p>细腻泥糊 · 推荐编号 #1</p></div>
+          </div>
+
+          <form id="report-form" class="form-stack">
+            <div class="card form-card report-card">
+              <fieldset>
+                <legend><span>01</span><div><b>家长实际提供了吗？</b><small>是否按照这条推荐准备了食物</small></div></legend>
+                <div class="binary-options">
+                  <label><input type="radio" name="adopted" value="true" checked /><span>是，已经提供</span></label>
+                  <label><input type="radio" name="adopted" value="false" /><span>没有提供</span></label>
+                </div>
+              </fieldset>
+              <fieldset id="consumed-fieldset">
+                <legend><span>02</span><div><b>宝宝实际吃到了一些吗？</b><small>只舔到或完全没入口可选择“没有”</small></div></legend>
+                <div class="binary-options">
+                  <label><input type="radio" name="consumed" value="true" checked /><span>是，吃到了一些</span></label>
+                  <label><input type="radio" name="consumed" value="false" /><span>没有吃进去</span></label>
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="card form-card outcome-card" id="outcome-card">
+              <div class="section-title"><span>03</span><div><h2>这次尝试的结果</h2><p>选择最符合实际情况的一项</p></div></div>
+              <div class="outcome-options">
+                <label><input type="radio" name="outcome" value="passed" checked /><span class="outcome-safe"><i>✓</i><b>顺利通过</b><small>已吃到，暂未发现异常</small></span></label>
+                <label><input type="radio" name="outcome" value="refused" /><span class="outcome-refused"><i>–</i><b>宝宝拒吃</b><small>已经提供，但没有吃进去</small></span></label>
+                <label><input type="radio" name="outcome" value="reaction" /><span class="outcome-reaction"><i>!</i><b>出现不良反应</b><small>记录现象，并重新安排后续计划</small></span></label>
+              </div>
+              <div class="reaction-warning" id="reaction-warning" hidden>
+                <b>请停止继续添加这种食物</b>
+                <p>记录发生时间和具体表现；如果反应严重，请及时就医。本工具不会判断是否过敏，也不提供用药建议。</p>
+              </div>
+              <label class="field"><span>补充说明（选填）</span><textarea id="outcome-note" rows="3" placeholder="例如：吃了两小勺，半小时后嘴角发红"></textarea></label>
+              <label class="field"><span>发生日期</span><input id="outcome-date" type="date" required /></label>
+            </div>
+
+            <button class="primary-button" type="submit"><span>保存本次情况</span><span aria-hidden="true">→</span></button>
+          </form>
+        </section>
+        <section class="page" data-page="history" aria-labelledby="history-title" hidden>
+          <div class="page-heading history-heading">
+            <span class="eyebrow">尝试记录</span>
+            <h1 id="history-title">宝宝已经认识这些食物</h1>
+            <p>这里汇总新食物的尝试结果。每日吃到的七类食物仍在“每日记录”中填写。</p>
+          </div>
+
+          <div class="history-summary" aria-label="尝试记录概况">
+            <div><strong id="history-total">0</strong><span>已尝试</span></div>
+            <div><strong id="history-passed">0</strong><span>顺利通过</span></div>
+            <div><strong id="history-followup">0</strong><span>需要留意</span></div>
+          </div>
+
+          <div class="history-filter" id="history-filter" aria-label="筛选尝试结果">
+            <button type="button" class="selected" data-status="all">全部</button>
+            <button type="button" data-status="passed">已通过</button>
+            <button type="button" data-status="refused">宝宝拒绝</button>
+            <button type="button" data-status="reaction">不良反应</button>
+          </div>
+
+          <div class="history-list" id="history-state" aria-live="polite"></div>
+          <p class="medical-note history-note">出现不良反应的记录仅用于提醒和后续排程，不代表医学诊断。如反应严重，请及时就医。</p>
+        </section>
+
+        <section class="page" data-page="share" aria-labelledby="share-title" hidden>
+          <button class="back-button" type="button" data-back="schedule"><span aria-hidden="true">←</span> 返回安排</button>
+          <div class="page-heading share-heading">
+            <span class="eyebrow">分享给家人</span>
+            <h1 id="share-title">让照护宝宝的人都知道</h1>
+            <p>把近期安排整理成一段清楚的文字，直接发到微信家庭群即可。</p>
+          </div>
+
+          <article class="share-preview" aria-label="待分享的辅食安排">
+            <div class="share-brand"><span class="brand-mark" aria-hidden="true"><i></i><b></b></span><div><strong>果初辅食安排</strong><small id="share-generated-date">今日整理</small></div></div>
+            <h2 id="share-baby-name">宝宝近期可以尝试</h2>
+            <div class="share-schedule-list" id="share-schedule-list"></div>
+            <p class="share-reminder">每种新食物间隔约4天；首次尝试请少量提供并注意观察。</p>
+          </article>
+
+          <div class="privacy-note share-privacy">
+            <span class="privacy-icon" aria-hidden="true">✓</span>
+            <div><strong>只分享需要的信息</strong><p>分享内容不包含出生日期、已知致敏物质、实验分组和试用编号。</p></div>
+          </div>
+
+          <div class="share-actions">
+            <button class="primary-button" id="share-plan" type="button"><span>分享给家人</span><span aria-hidden="true">↗</span></button>
+            <button class="secondary-button" id="copy-plan" type="button">复制安排文字</button>
+          </div>
+          <p class="consent-copy" id="share-support-note">手机支持系统分享时会打开分享面板；也可以复制后粘贴到微信。</p>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="主要导航">
+        <a href="#schedule" data-nav="schedule"><svg viewBox="0 0 24 24"><path d="M6 3v3M18 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"/></svg><span>安排</span></a>
+        <a href="#daily" data-nav="daily"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 9h8M8 13h5M8 17h7"/></svg><span>每日记录</span></a>
+        <a href="#history" data-nav="history"><svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-8.5-6M3 19v-5h5M12 7v5l3 2"/></svg><span>已吃</span></a>
+        <a href="#profile" data-nav="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg><span>宝宝</span></a>
+      </nav>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

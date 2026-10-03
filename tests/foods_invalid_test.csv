@@ -1,2 +1,2 @@
-id,name,category,iron_mg_per_100g,zinc_mg_per_100g,nutrient_source,is_allergen,allergen_type,min_month,texture_stage,season_months,prep_note,source,avg_price,edible_ratio
-17,测试-无出处食物,其他蔬果,0.3,0.2,plant,0,,6,1,1-12,无,,,
+id,name,category,iron_mg_per_100g,zinc_mg_per_100g,nutrient_source,is_allergen,allergen_type,min_month,texture_stage,season_months,prep_note,source,avg_price,edible_ratio,auto_recommend
+17,测试-无出处食物,其他蔬果,0.3,0.2,plant,0,,6,1,1-12,无,,,,1

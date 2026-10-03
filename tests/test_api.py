@@ -90,6 +90,20 @@ class ApiTestCase(unittest.TestCase):
         ]["post"]["parameters"]
         self.assertIn("唯一推荐编号", recommendation_parameters[0]["description"])
 
+    def test_family_h5_contains_all_six_pages_and_assets(self) -> None:
+        page = self.client.get("/")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("宝宝档案", page.text)
+        for name in ("profile", "daily", "schedule", "report", "history", "share"):
+            self.assertIn(f'data-page="{name}"', page.text)
+
+        styles = self.client.get("/styles.css")
+        script = self.client.get("/app.js")
+        self.assertEqual(styles.status_code, 200)
+        self.assertEqual(script.status_code, 200)
+        self.assertIn("刷新成功", script.text)
+        self.assertIn("evidenceByScore", script.text)
+
     def test_yang_zi_yue_food_fixture_is_used_and_invalid_row_is_rejected(self) -> None:
         foods = self.client.get("/foods")
         self.assertEqual(foods.status_code, 200)

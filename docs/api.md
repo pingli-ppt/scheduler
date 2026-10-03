@@ -41,6 +41,15 @@ python -m uvicorn api.main:app --reload
 服务每次使用前都必须启动。`/docs` 中由本项目编写的标题、接口用途和字段说明以中文
 为主；Swagger 自带的 `Try it out`、`Execute`、`Responses` 等按钮仍会显示英文。
 
+需要在本机查看已经接入的100种正式食物时，先清除测试库环境变量，再启动服务：
+
+```powershell
+Remove-Item Env:GUOCHU_DB_PATH -ErrorAction SilentlyContinue
+python -m uvicorn api.main:app --reload
+```
+
+此时接口默认读取 `data/guochu.sqlite3`。测试库和正式库不要混用。
+
 这里是开发人员在自己电脑上的测试方法，不是服务器部署命令。交给其他成员的正式
 部署步骤见 [`docs/deploy.md`](deploy.md)。
 
@@ -63,4 +72,5 @@ python -m uvicorn api.main:app --reload
 `GUOCHU_EXPERIMENT_PHASE=baseline`，实验组在基线期也不会生成推荐。
 
 杨紫玥提供的 `foods_test.csv` 是测试专用假数据，只用于接口和规则联调，不导入正式
-食物库。
+食物库。吴琦提供的100种食物保存在 `data/foods.csv`，其中 `auto_recommend=0` 的食物
+可以查询，但不会进入自动推荐结果。

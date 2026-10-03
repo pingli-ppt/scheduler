@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 from datetime import date as Date, timedelta
+from pathlib import Path as FilePath
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from api.docs import chinese_swagger_ui
@@ -391,3 +393,7 @@ def put_daily_intake(child_id: ChildId, body: DailyIntakeInput) -> dict:
         item for item in load_daily_intake(child_id) if item["date"] == body.date
     )
     return item
+
+
+WEB_DIRECTORY = FilePath(__file__).resolve().parent.parent / "web"
+app.mount("/", StaticFiles(directory=WEB_DIRECTORY, html=True), name="家庭网页")
