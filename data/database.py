@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS foods (
     prep_note           TEXT,
     source              TEXT NOT NULL CHECK (length(trim(source)) > 0),
     avg_price           REAL CHECK (avg_price IS NULL OR avg_price >= 0),
-    edible_ratio        REAL CHECK (edible_ratio IS NULL OR (edible_ratio >= 0 AND edible_ratio <= 1))
+    edible_ratio        REAL CHECK (edible_ratio IS NULL OR (edible_ratio >= 0 AND edible_ratio <= 1)),
+    auto_recommend      INTEGER NOT NULL DEFAULT 1 CHECK (auto_recommend IN (0, 1))
 );
 
 CREATE TABLE IF NOT EXISTS children (
@@ -121,6 +122,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_recommendations_active_item
 """
 
 
+def _migrate_food_auto_recommend_column(connection: sqlite3.Connection) -> None:
+    """为旧数据库的食物表补齐自动推荐开关，已有食物默认允许推荐。"""
+
+    existing = {
+        str(row["name"])
+        for row in connection.execute("PRAGMA table_info(foods)")
+    }
+    if "auto_recommend" not in existing:
+        connection.execute(
+            "ALTER TABLE foods ADD COLUMN auto_recommend "
+            "INTEGER NOT NULL DEFAULT 1 CHECK (auto_recommend IN (0, 1))"
+        )
+
+
 def resolve_database_path(database_path: str | Path | None = None) -> Path:
     """返回数据库路径；相对路径统一相对于项目根目录解释。"""
 
@@ -169,6 +184,7 @@ def init_database(database_path: str | Path | None = None) -> Path:
     path = resolve_database_path(database_path)
     with open_database(path) as connection:
         connection.executescript(SCHEMA_SQL)
+        _migrate_food_auto_recommend_column(connection)
     return path
 
 

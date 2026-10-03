@@ -41,6 +41,7 @@ def make_food(food_id: int, **overrides) -> dict:
         "source": "测试来源",
         "avg_price": None,
         "edible_ratio": None,
+        "auto_recommend": 1,
     }
     food.update(overrides)
     return food
@@ -91,6 +92,16 @@ class ConstraintTests(unittest.TestCase):
         self.assertFalse(
             is_food_eligible(
                 make_food(1, source=" "),
+                make_child(),
+                date(2026, 7, 15),
+                [],
+            )
+        )
+
+    def test_food_disabled_for_auto_recommendation_is_excluded(self) -> None:
+        self.assertFalse(
+            is_food_eligible(
+                make_food(1, auto_recommend=0),
                 make_child(),
                 date(2026, 7, 15),
                 [],

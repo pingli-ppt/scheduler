@@ -22,6 +22,7 @@ new_plan = report_reaction("C001", food_id=12, reaction_date=date(2026, 10, 1))
 
 ## 实现约定
 
+- C0 先检查 `auto_recommend`；值为 `0` 的食物保留在食物库中，但不进入自动推荐候选池。
 - C5 只按 `allergen_type` 与儿童的过敏类别比较；`known_allergens` 不存食物编号。
 - `passed` 和已有 `planned` 食物不再作为新食物；`reaction` 食物冷却 90 天后允许重试。
 - `refused` 不计入摄入或类别覆盖，累计三次后排除。
@@ -50,4 +51,3 @@ python -m algo.cli C001 --today 2026-09-26 --weeks 6
 ```powershell
 python -m unittest discover -s tests -v
 ```
-

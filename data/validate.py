@@ -23,6 +23,7 @@ FOOD_COLUMNS = (
     "source",
     "avg_price",
     "edible_ratio",
+    "auto_recommend",
 )
 
 CATEGORIES = frozenset(
@@ -286,6 +287,14 @@ def normalize_food_row(
             f"{_location('edible_ratio', line_number)} 必须在 0 到 1 之间"
         )
 
+    auto_recommend = _integer(
+        row.get("auto_recommend"), "auto_recommend", line_number
+    )
+    if auto_recommend not in (0, 1):
+        raise DataValidationError(
+            f"{_location('auto_recommend', line_number)} 只能填 0 或 1"
+        )
+
     return {
         "id": food_id,
         "name": _required_text(row.get("name"), "name", line_number),
@@ -306,4 +315,5 @@ def normalize_food_row(
         "source": _required_text(row.get("source"), "source", line_number),
         "avg_price": _optional_float(row.get("avg_price"), "avg_price", line_number),
         "edible_ratio": edible_ratio,
+        "auto_recommend": auto_recommend,
     }

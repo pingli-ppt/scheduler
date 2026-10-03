@@ -4,7 +4,7 @@
 
 ## 核心表
 
-- `foods`：食物基础资料。
+- `foods`：食物基础资料；`auto_recommend` 为 `0` 时不进入自动推荐候选池。
 - `children`：儿童档案及 `test` / `control` 分组。
 - `food_records`：`planned`、`passed`、`refused`、`reaction` 记录。
 - `daily_intake`：按儿童和日期唯一的每日膳食记录。

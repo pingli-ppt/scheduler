@@ -1,4 +1,4 @@
-"""候选食物硬性约束 C1～C6。"""
+"""候选食物硬性约束 C0～C6。"""
 
 from __future__ import annotations
 
@@ -45,7 +45,10 @@ def is_food_eligible(
     history: Iterable[Mapping],
     planned_food_ids: set[int] | None = None,
 ) -> bool:
-    """判断食物在指定日期是否通过 C2～C6。"""
+    """判断食物在指定日期是否通过 C0、C2～C6。"""
+
+    if int(food.get("auto_recommend", 1)) != 1:
+        return False
 
     source = str(food.get("source") or "").strip()
     if not source:
@@ -80,4 +83,3 @@ def is_food_eligible(
                 return False
 
     return refused_count < MAX_REFUSE
-

@@ -35,7 +35,8 @@ ON CONFLICT(id) DO UPDATE SET
     prep_note = excluded.prep_note,
     source = excluded.source,
     avg_price = excluded.avg_price,
-    edible_ratio = excluded.edible_ratio
+    edible_ratio = excluded.edible_ratio,
+    auto_recommend = excluded.auto_recommend
 """
 
 

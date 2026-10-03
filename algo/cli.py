@@ -29,6 +29,7 @@ def _demo_food(food_id: int, name: str, category: str, **overrides) -> dict:
         "source": "演示数据",
         "avg_price": None,
         "edible_ratio": None,
+        "auto_recommend": 1,
     }
     food.update(overrides)
     return food
