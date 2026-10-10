@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+database=${GUOCHU_DB_PATH:-/data/guochu-test.sqlite3}
+backup_dir=${GUOCHU_BACKUP_DIR:-/var/backups/guochu}
+retention_days=${GUOCHU_BACKUP_RETENTION_DAYS:-14}
+
+case "$retention_days" in
+    ''|*[!0-9]*)
+        echo "GUOCHU_BACKUP_RETENTION_DAYS must be a non-negative integer" >&2
+        exit 2
+        ;;
+esac
+
+test -f "$database"
+test -d "$backup_dir"
+test -w "$backup_dir"
+
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+final_path="$backup_dir/guochu-$timestamp.sqlite3"
+partial_path="$final_path.partial"
+
+cleanup() {
+    rm -f "$partial_path"
+}
+trap cleanup EXIT HUP INT TERM
+
+sqlite3 "$database" ".backup '$partial_path'"
+
+integrity_result=$(sqlite3 "$partial_path" "PRAGMA integrity_check;")
+if [ "$integrity_result" != "ok" ]; then
+    echo "SQLite backup integrity check failed: $integrity_result" >&2
+    exit 1
+fi
+
+chmod 0640 "$partial_path"
+mv "$partial_path" "$final_path"
+trap - EXIT HUP INT TERM
+
+find "$backup_dir" -maxdepth 1 -type f \
+    -name 'guochu-*.sqlite3' -mtime "+$retention_days" -delete
+
+echo "Backup completed: $final_path"

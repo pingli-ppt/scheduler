@@ -1,0 +1,24 @@
+[Unit]
+Description=Guochu internal test service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=guochu
+Group=guochu
+WorkingDirectory=/opt/guochu
+EnvironmentFile=/etc/guochu/guochu.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/guochu/.venv/bin/python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=on-failure
+RestartSec=3
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/data
+
+[Install]
+WantedBy=multi-user.target

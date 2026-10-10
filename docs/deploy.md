@@ -44,12 +44,19 @@ python -m pip install -r requirements.txt
 | `GUOCHU_DB_PATH` | `/data/guochu.sqlite3` | 正式 SQLite 数据库在服务器上的位置 |
 | `GUOCHU_EXPERIMENT_PHASE` | `baseline` 或 `active` | 基线期或正式实验期 |
 | `GUOCHU_CORS_ORIGINS` | `https://网页实际域名` | 允许哪个家庭网页调用接口；多个域名用英文逗号分隔 |
+| `GUOCHU_AUTH_ENABLED` | `true` | 内部测试环境启用网页登录保护；本地开发可不设置 |
+| `GUOCHU_HTPASSWD_PATH` | `/etc/nginx/.htpasswd` | 服务器密码文件路径，不要放进仓库 |
+| `GUOCHU_AUTH_USERNAME` | `guochu` | 密码文件中用于校验的平台用户名 |
+| `GUOCHU_SESSION_SECRET_PATH` | `/etc/guochu/session-secret` | 会话签名密钥文件路径，不要放进仓库 |
+| `GUOCHU_SESSION_MAX_AGE_SECONDS` | `604800` | 登录有效期，默认示例为 7 天 |
 | `PORT` | 通常由平台自动提供 | 后端监听端口；没有提供时默认使用 8000 |
 
 注意：
 
 - 不要把 `tmp/guochu-test.sqlite3` 部署为正式数据库，它只包含测试假数据。
 - 不要把密码、平台令牌或真实家庭信息写进仓库或本文档。
+- 微信内置浏览器不可靠地支持 HTTP Basic Auth 弹窗；内部测试环境应使用
+  `GUOCHU_AUTH_ENABLED=true` 提供的中文登录页和安全 Cookie。
 - `GUOCHU_CORS_ORIGINS` 必须填写网页真正使用的 `https://` 域名，结尾不要写路径。
 
 ## 四、正式数据库和 100 种食物
@@ -122,3 +129,16 @@ python -m api.run_server
 - 切换基线期和正式实验期时，只修改 `GUOCHU_EXPERIMENT_PHASE`，然后重启服务。
 - 更换网页域名时，同步修改 `GUOCHU_CORS_ORIGINS`。
 - 出现问题时记录部署版本对应的 Git 提交编号，便于回退和排查。
+
+## 九、自建 Ubuntu 服务器配置模板
+
+仓库的 [`deploy/`](../deploy/) 目录提供不含秘密的可复用模板，包括：
+
+- Nginx 首次 HTTP 配置和最终 HTTPS 配置；
+- systemd 应用服务、备份服务和每日定时器；
+- SQLite 一致性备份及完整性检查脚本；
+- 环境变量示例和安装验证步骤。
+
+模板可以提交 Git，但实际的密码文件、会话签名密钥、Let's Encrypt 私钥、数据库和备份
+绝不能提交。安装或更新前先阅读 [`deploy/README.md`](../deploy/README.md)，并确认服务器
+路径、域名、数据库环境和模板一致。

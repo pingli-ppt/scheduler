@@ -6,13 +6,24 @@ import os
 from datetime import date as Date, timedelta
 from pathlib import Path as FilePath
 from typing import Annotated, Literal
+from urllib.parse import quote
 
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from api.auth import (
+    SESSION_COOKIE_NAME,
+    auth_enabled,
+    issue_session_token,
+    login_page,
+    safe_redirect_path,
+    session_max_age,
+    session_token_is_valid,
+    verify_platform_password,
+)
 from api.docs import chinese_swagger_ui
 from algo.scheduler import generate_schedule
 from data.repository import (
@@ -97,6 +108,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+AUTH_PUBLIC_PATHS = {"/login", "/auth/login", "/health"}
+AUTH_API_PREFIXES = ("/children/", "/foods", "/recommendations/", "/openapi.json")
+
+
+@app.middleware("http")
+async def require_authenticated_session(request: Request, call_next):
+    """为内部测试环境增加兼容微信的 Cookie 登录保护。"""
+
+    if not auth_enabled():
+        return await call_next(request)
+
+    path = request.url.path
+    if path in AUTH_PUBLIC_PATHS or path.startswith("/.well-known/acme-challenge/"):
+        return await call_next(request)
+    if session_token_is_valid(request.cookies.get(SESSION_COOKIE_NAME)):
+        return await call_next(request)
+
+    is_api_request = path.startswith(AUTH_API_PREFIXES)
+    if request.method in {"GET", "HEAD"} and not is_api_request:
+        destination = quote(safe_redirect_path(path), safe="")
+        return RedirectResponse(url=f"/login?next={destination}", status_code=303)
+    return JSONResponse(status_code=401, content={"detail": "请先登录内部测试环境"})
+
 ChildId = Annotated[
     str,
     Path(description="儿童编号，例如 C002"),
@@ -155,9 +189,59 @@ class DailyIntakeInput(BaseModel):
     milk_feeds: int = Field(default=0, ge=0, description="当天配方奶喂养次数")
 
 
+class LoginInput(BaseModel):
+    password: str = Field(min_length=1, max_length=256)
+    next: str = Field(default="/")
+
+
 @app.get("/docs", include_in_schema=False)
 def api_docs() -> HTMLResponse:
     return chinese_swagger_ui(app.openapi_url, "果初接口文档")
+
+
+@app.get("/login", response_class=HTMLResponse, include_in_schema=False)
+def login(request: Request, next: str = Query(default="/")) -> HTMLResponse:
+    destination = safe_redirect_path(next)
+    if not auth_enabled():
+        return RedirectResponse(url=destination, status_code=303)
+    if session_token_is_valid(request.cookies.get(SESSION_COOKIE_NAME)):
+        return RedirectResponse(url=destination, status_code=303)
+    return HTMLResponse(login_page(destination))
+
+
+@app.post("/auth/login", include_in_schema=False)
+def create_login_session(body: LoginInput) -> JSONResponse:
+    if not auth_enabled():
+        return JSONResponse(status_code=404, content={"detail": "登录功能未启用"})
+    if not verify_platform_password(body.password):
+        return JSONResponse(status_code=401, content={"detail": "访问密码不正确"})
+
+    response = JSONResponse(
+        content={"ok": True, "redirect": safe_redirect_path(body.next)}
+    )
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=issue_session_token(),
+        max_age=session_max_age(),
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+    return response
+
+
+@app.post("/auth/logout", include_in_schema=False)
+def delete_login_session() -> JSONResponse:
+    response = JSONResponse(content={"ok": True})
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+    )
+    return response
 
 
 @app.exception_handler(ChildNotFoundError)
